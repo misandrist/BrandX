@@ -31,21 +31,24 @@ open System
 type AuthQual = AQNone
 
 //  We only have one of these anyway
-let pAuthQual : Parser<AuthQual> = stringReturn "00" AQNone .>> pFSep
+let authQual : Parser<AuthQual> = field (skipString "00") (constant AQNone)
 
 //ISA-02: this is 10 chars, may be whitespace
 type AuthInfo =
     | AuthInfo of string
 
-let pAuthInfo : Parser<AuthInfo> = anyString 10 |>> AuthInfo .>> pFSep
+let authInfo : Parser<AuthInfo> = field (anyString 10) AuthInfo
 
 // The Authorization Qualifier and Info
 type Auth =
     { authQual : AuthQual
       authInfo : AuthInfo }
 
-let pAuth =
-    pipe2 pAuthQual pAuthInfo (fun q i ->
+// Construct an Auth from the parsed pAuthQual and pAuthInfo. The
+// field separators have already been handled at this point so we just
+// need to combine the results of the parsers into another parser.
+let auth =
+    pipe2 authQual authInfo (fun q i ->
         { authQual = q
           authInfo = i })
 
@@ -53,102 +56,92 @@ let pAuth =
 type SecQual = SQNone
 
 //ISA-03
-let pSecQual : Parser<SecQual> = stringReturn "00" SQNone .>> pFSep
+let secQual : Parser<SecQual> = field (skipString "00") (constant SQNone)
 
 type SecInfo =
     | SecInfo of string
 
 //ISA-04
-let pSecInfo : Parser<SecInfo> = anyString 10 |>> SecInfo .>> pFSep
+let secInfo : Parser<SecInfo> = field (anyString 10) SecInfo
 
 // The Security Info Qualifier and stuff
 type Sec =
     { secQual : SecQual
       secInfo : SecInfo }
 
-let pSec =
-    pipe2 pSecQual pSecInfo (fun q i ->
+let sec =
+    pipe2 secQual secInfo (fun q i ->
         { secQual = q
           secInfo = i })
 
 // ISA-05: The Interchange ID Qualifier
 type InterchangeID = InterchangeID of string
 
-let pInterchgeID = anyString 2 |>> InterchangeID .>> pFSep
+let interchgID : Parser<InterchangeID> = field (anyString 2) InterchangeID
 
 // ISA-06: The Interchange Sender ID
 type InterchgSndrID = InterchgSndrID of string
 
-let pInterchgSndrId = anyString 15 |>> InterchgSndrID .>> pFSep
+let interchgSndrId = field (anyString 15) InterchgSndrID
 
 // ISA-07 is exactly the same as ISA-05 in the MG-EDI pdf manual
 type InterchgIdQual = InterchgIdQual of string
 
-let pInterchgIdQual = anyString 2 |>> InterchgIdQual .>> pFSep
+let interchgIdQual = field (anyString 2) InterchgIdQual
 
 //ISA-08: The Interchange Receiver ID
 type InterchgRecvrID = InterchgRecvrID of string
 
-let pInterchgRcvId = anyString 15 |>> InterchgRecvrID .>> pFSep
+let interchgRcvId = field (anyString 15) InterchgRecvrID
 
 //ISA-09/ISA-10: Interchange Date/Time
 type InterchgDateTime = InterchgDateTime of DateTime
 
-let pInterchgDateTime = pDateTime |>> InterchgDateTime
+let interchgDateTime = dateTime InterchgDateTime
 
 //ISA-11: Interchange Control Standards Identifier
 type InterchgCtrlStds = InterchgCtrlStds of string
 
-let pInterchgCtrlStds<'T, 'u> = anyString 1 |>> InterchgCtrlStds .>> pFSep
+let interchgCtrlStds<'T, 'u> = field (anyString 1) InterchgCtrlStds
 
 //ISA-12: Interchange Control Version Number
 type InterchgCtrlVerNo = InterchgCtrlVerNo of string
 
-let pInterchgCtrlVerNo = anyString 5 |>> InterchgCtrlVerNo .>> pFSep
+let interchgCtrlVerNo = field (anyString 5) InterchgCtrlVerNo
 
 //ISA-13: Interchange Control Number
 type InterchgCtrlNo = InterchgCtrlNo of string
 
-let pInterchgCtrlNo = anyString 9 |>> InterchgCtrlNo .>> pFSep
+let interchgCtrlNo = field (anyString 9) InterchgCtrlNo
 
 //ISA-14: Acknowledgement Requested
 type AckReq = AckReq of string
 
-let pAckReq = anyString 1 |>> AckReq .>> pFSep
+let ackReq = field (anyString 1) AckReq
 
 //ISA-15: Usage Indicator
 type UsageInd = UsageInd of string
 
-let pUsageInd = anyString 1 |>> UsageInd .>> pFSep
+let usageInd = field (anyString 1) UsageInd
 
 type ISA =
     | ISA of Auth * Sec * InterchangeID * InterchgSndrID * InterchgIdQual * InterchgRecvrID * InterchgDateTime * InterchgCtrlStds * InterchgCtrlVerNo * InterchgCtrlNo * AckReq * UsageInd
 
-let pISA =
-    pAuth
-    >>= fun a ->
-        pSec
-        >>= fun b ->
-            pInterchgeID
-            >>= fun c ->
-                pInterchgSndrId
-                >>= fun d ->
-                    pInterchgIdQual
-                    >>= fun e ->
-                        pInterchgRcvId
-                        >>= fun f ->
-                            pInterchgDateTime
-                            >>= fun g ->
-                                pInterchgCtrlStds
-                                    >>= fun i ->
-                                        pInterchgCtrlVerNo
-                                        >>= fun j ->
-                                            pInterchgCtrlNo
-                                            >>= fun k ->
-                                                pAckReq
-                                                >>= fun l ->
-                                                    pUsageInd
-                                                    >>= fun m ->
-                                                    preturn (ISA(a, b, c, d, e, f, g, i, j, k, l, m))
+let pISA = parse {
+    let! a = auth
+    let! b = sec
+    let! c = interchgID
+    let! d = interchgSndrId
+    let! e = interchgIdQual
+    let! f = interchgRcvId
+    let! g = interchgDateTime
+    let! h = interchgCtrlStds
+    let! i = interchgCtrlVerNo
+    let! j = interchgCtrlNo
+    let! k = ackReq
+    let! l = usageInd
 
-let pISARec = skipString "ISA" >>. pFSep >>. pISA .>> pElSep .>> pRSep
+    return ISA(a, b, c, d, e, f, g, h, i, j, k, l)
+    }
+
+let isa = record "ISA" pISA

@@ -5,18 +5,18 @@ open System.IO
 open FParsec
 open BrandX.Structures
 
-type InclFunGrps = 
+type InclFunGrps =
     | InclFunGrps of string
 
-let pFgrps : Parser<InclFunGrps> = manyMinMaxSatisfy 1 5 (isNoneOf "~") |>> InclFunGrps .>> pFSep
+let fgrps : Parser<InclFunGrps> = manyMinMaxSatisfy 1 5 (isNoneOf "~") |>> InclFunGrps .>> fsep
 
 
 type IntchgCtrlNo =
     | IntchgCtrlNo of uint16
 
-let pCtrlNo : Parser<IntchgCtrlNo> = (manyMinMaxSatisfy 9 9 isDigit |>> (fun ctl -> UInt16.Parse(ctl) |> IntchgCtrlNo)) .>> pFSep
+let ctrlNo : Parser<IntchgCtrlNo> = (manyMinMaxSatisfy 9 9 isDigit |>> (fun ctl -> UInt16.Parse(ctl) |> IntchgCtrlNo)) .>> fsep
 
 type IEA = IEA of InclFunGrps * IntchgCtrlNo
 
-let pIEA =
-    skipString "IEA" >>. pFSep >>. tuple2 pFgrps pCtrlNo |>> IEA .>> pRSep
+let iEA =
+    skipString "IEA" >>. fsep >>. tuple2 fgrps ctrlNo |>> IEA .>> rsep

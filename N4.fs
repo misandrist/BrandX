@@ -6,61 +6,63 @@ open System.IO
 open FParsec
 open BrandX.Structures
 
-type City = 
+type City =
     | City of string
 
-let pCity : Parser<City option> =
+let city : Parser<City option> =
     (opt
-        (manyMinMaxSatisfy 2 30 (isNoneOf "*~") |>> City)) .>> pFSep
+        (manyMinMaxSatisfy 2 30 (isNoneOf "*~") |>> City)) .>> fsep
 
 type State =
     | State of string
 
-let pState : Parser<State option> = 
-    (opt 
-        (anyString 2 |>> State)) .>> pFSep
+let state : Parser<State option> =
+    (opt
+        (anyString 2 |>> State)) .>> fsep
 
 type Zipcode =
     | Zipcode of string
 
-let pZip : Parser<Zipcode option> = 
+let zip : Parser<Zipcode option> =
     (opt
-        (manyMinMaxSatisfy 3 15 (isNoneOf"*~.,':;' '") |>> Zipcode)) .>> pFSep
+        (manyMinMaxSatisfy 3 15 (isNoneOf"*~.,':;' '") |>> Zipcode)) .>> fsep
 
-type Country = 
+type Country =
     | Country of string
 
-let pCountry : Parser<Country option> =
-    (opt 
-        (manyMinMaxSatisfy 2 3 isAsciiLetter |>> Country)) .>> pRSep
+let country : Parser<Country option> =
+    (opt
+        (manyMinMaxSatisfy 2 3 isAsciiLetter |>> Country)) //.>> fsep
 
 
-type Location = 
+
+type Location =
     { city : City option
       state : State option
       zip : Zipcode option
       country : Country option}
 
-let pLoc = 
+let pLoc =
     pipe4 pCity pState pZip pCountry (fun m s z c ->
         {city = m
          state = s
          zip = z
-         country = c}) 
+         country = c})
 
-type N4 = 
-    | N4 of Location 
+type N4 =
+    | N4 of AddressInfo * City option * State option * Zipcode option * Country option //City * State * Zipcode * Country
 
-let pN4Record = 
-    pLoc
-    >>= fun x -> 
-        preturn (N4(x)) 
-    
+let n4 =
+    addInf
+    >>= fun a ->
+        city
+        >>= fun b ->
+            state
+            >>= fun c ->
+                zip
+                >>= fun d ->
+                    country
+                    >>= fun e ->
+                        preturn (N4(a,b,c,d,e))
 
-let pN4 = skipString "N4" >>. pFSep >>. pN4Record
-  
-
-
-
-
-
+let n4record = skipString "N4" .>> fsep >>. n4 .>> rsep

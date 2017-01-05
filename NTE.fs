@@ -12,7 +12,7 @@ type RefCode =
 let pRefCode : Parser<RefCode option> =
     (opt
          (manyMinMaxSatisfy 3 3 isDigit
-          |>> (fun rc -> UInt16.Parse(rc) |> RefCode))) .>> pFSep
+          |>> (fun rc -> UInt16.Parse(rc) |> RefCode))) .>> fsep
 
 type NTEDescription =
     | NTEDescription of string
@@ -24,5 +24,5 @@ type NTE =
     | NTE of RefCode option * NTEDescription
 
 let pNTE : Parser<NTE> =
-    skipString "NTE" >>. pFSep >>. tuple2 pRefCode pDescription |>> NTE
-    .>> pRSep
+    skipString "NTE" >>. fsep >>. tuple2 pRefCode pDescription |>> NTE
+    .>> rsep

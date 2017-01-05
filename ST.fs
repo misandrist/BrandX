@@ -6,21 +6,21 @@ open System.Collections.Generic
 open System.IO
 open BrandX.Structures
 
-type TsID = 
+type TsID =
     | MotorCarrierLoadTender
 
-let pTsId : Parser<TsID> = skipString "204" >>. preturn MotorCarrierLoadTender .>> pFSep
+let tsId : Parser<TsID> = skipString "204" >>. preturn MotorCarrierLoadTender .>> fsep
 
 type TctrlNo =
-    | TctrlNo of string 
+    | TctrlNo of string
 
-let pTctrlNo : Parser<TctrlNo> = manyMinMaxSatisfy 4 9 (fun c -> isDigit c ) |>> TctrlNo .>> pRSep  
+let tctrlNo : Parser<TctrlNo> = manyMinMaxSatisfy 4 9 (fun c -> isDigit c ) |>> TctrlNo .>> rsep
 
-type ST = ST of TsID * TctrlNo 
+type ST = ST of TsID * TctrlNo
 
-let pST = 
-    skipString "ST" >>. pFSep >>. pTsId
+let sT =
+    skipString "ST" >>. fsep >>. tsId
     >>= fun id ->
-        pTctrlNo
-        >>= fun ctrl -> 
+        tctrlNo
+        >>= fun ctrl ->
             preturn (ST(id, ctrl))

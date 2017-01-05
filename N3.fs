@@ -8,32 +8,32 @@ open BrandX.Structures
 type AddressInfo =
     | AddressInfo of string
 
-let pAddy : Parser<AddressInfo> = manyMinMaxSatisfy 1 55 (isNoneOf "*~") |>> AddressInfo //.>> pFSep
+let pAddy : Parser<AddressInfo> = manyMinMaxSatisfy 1 55 (isNoneOf "*~") |>> AddressInfo //.>> fsep
 
-type Details = 
-    | Details of string 
+type Details =
+    | Details of string
 
-let pDet : Parser<Details option> = 
-    (opt 
-        (manyMinMaxSatisfy 1 55 (isNoneOf "*~") |>> Details)) .>> pRSep
+let pDet : Parser<Details option> =
+    (opt
+        (manyMinMaxSatisfy 1 55 (isNoneOf "*~") |>> Details)) .>> rsep
 
-type OptionalAddressInfo = 
+type OptionalAddressInfo =
     { address : AddressInfo
       optDetails : Details option}
 
-let pOptAdInf = 
+let pOptAdInf =
     pipe2 pAddy pDet (fun a d ->
         { address = a
           optDetails = d})
 
-type N3 = 
-    | N3 of OptionalAddressInfo 
+type N3 =
+    | N3 of OptionalAddressInfo
 
-let pN3Record = 
+let pN3Record =
     pOptAdInf
-    >>= fun x -> 
+    >>= fun x ->
         preturn (N3(x))
 
 
-let pN3 : Parser<N3> = 
-    skipString "N3" >>. pFSep >>. pN3Record 
+let pN3 : Parser<N3> =
+    skipString "N3" >>. pFSep >>. pN3Record

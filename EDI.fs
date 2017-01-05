@@ -3,7 +3,9 @@
 open BrandX.B2
 open BrandX.B2A
 open BrandX.GS
+open BrandX.IEA
 open BrandX.ISA
+open BrandX.N1
 open BrandX.NTE
 open BrandX.ST
 open BrandX.N1
@@ -14,42 +16,20 @@ open BrandX.L11
 open BrandX.IEA
 open FParsec
 
-type EDI = 
-    | EDI of ISA * GS * ST * B2 * B2A * NTE * N1 * N3 * N4 * S5 * L11 * L11 * L11 * L11 * L11 * L11 
+type EDI =
+    | EDI of ISA * GS * ST * B2 * B2A * NTE * N1 * N3 * N4 * S5 * L11 list
 
-let pEDI = 
-    pISARec 
-    >>= fun a -> 
-        pGS 
-        >>= fun b -> 
-            pST 
-            >>= fun c -> 
-                pB2 
-                >>= fun d -> 
-                    pB2A 
-                    >>= fun e -> 
-                        pNTE 
-                        >>= fun f -> 
-                            pN1
-                            >>= fun g -> 
-                                pN3
-                                >>= fun h ->
-                                    pN4
-                                    >>= fun i ->
-                                        pS5 
-                                        >>= fun j ->
-                                            pL11
-                                            >>= fun k -> 
-                                                pL11
-                                                >>= fun l ->
-                                                    pL11
-                                                    >>= fun m ->
-                                                        pL11
-                                                        >>= fun n -> 
-                                                            pL11 
-                                                            >>= fun o ->
-                                                                pL11 
-                                                                >>= fun p -> 
-
-                                                            preturn (EDI(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p))
-                                    
+let pEDI : Parser<EDI,_> = parse {
+    let! a = pISARec
+    let! b = pGS
+    let! c = pST
+    let! d = pB2
+    let! e = pB2A
+    let! f = pNTE
+    let! g = pN1
+    let! h = pN3
+    let! i = pN4
+    let! j = pS5
+    let! k = many pL11
+    return (EDI(a, b, c, d, e, f, g, h, i, j, k))
+    }

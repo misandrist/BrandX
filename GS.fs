@@ -8,73 +8,77 @@ open System.IO
 
 // GS*SM*MGCTLYST*BLNJ*20160930*145316*1*X*004010~
 // GS-01: Functional Identifier Code, 2 chars, "SM"
-type FuncIdCode = 
+type FuncIdCode =
     | MotorCarrierLoadTender
 
-let pFuncIdCode = 
-    skipString "SM" >>. preturn MotorCarrierLoadTender .>> pFSep
-let pRouteCode = manyMinMaxSatisfy 2 15 Char.IsUpper
+let funcIdCode : Parser<FuncIdCode> =
+    field (skipString "SM") (constant MotorCarrierLoadTender)
+
+let routeCode = (manyMinMaxSatisfy 2 15 isUpper)
 
 //GS-02: Application Sender Code, 2 chars
-type AppSndrCode = 
-    | AppSndrCode of string
+type ApsndrCode =
+    | ApsndrCode of string
 
-let pSdr : Parser<AppSndrCode> = pRouteCode |>> AppSndrCode .>> pFSep
+let sdr : Parser<ApsndrCode> = field routeCode ApsndrCode
 
 //GS-03: Application Receiver Code
-type AppRecvrCode = 
-    | AppRecvrCode of string
+type AprecvrCode =
+    | AprecvrCode of string
 
-let pRcvr : Parser<AppRecvrCode> = pRouteCode |>> AppRecvrCode .>> pFSep
+let rcvr : Parser<AprecvrCode> = field routeCode AprecvrCode
 
 //Handling the relationship set between Sender and Receiver
-type Routing = 
-    { appSdndrCode : AppSndrCode
-      appRecvrCode : AppRecvrCode }
+type Routing =
+    { apsdndrCode : ApsndrCode
+      aprecvrCode : AprecvrCode }
 
-let pRouting = 
-    pipe2 pSdr pRcvr (fun s r -> 
-        { appSdndrCode = s
-          appRecvrCode = r })
+let routing = parse {
+    let! s = sdr
+    let! r = rcvr
+
+    return { apsdndrCode = s
+             aprecvrCode = r }
+    }
 
 //GS-04, GS-05: Date of transaction
-type TxnTimeStamp = 
+type TxnTimeStamp =
     | TxnTimeStamp of DateTime
 
-let pTxnTimeStamp = pDateTime |>> TxnTimeStamp
+let txnTimeStamp = dateTime TxnTimeStamp
 
 //GS-06: Group Control Number
-type GrpCtrlNo = 
-    | GrpCtrlNo of string
+type GrctrlNo =
+    | GrctrlNo of string
 
-let pGrpCtlNo = manyMinMaxSatisfy 1 9 Char.IsDigit .>> pFSep |>> GrpCtrlNo
+let grctlNo = field (manyMinMaxSatisfy 1 9 isDigit) GrctrlNo
 
 //GS-07: Responsible Agency Code
-type RspAgyCode = 
+type RsagyCode =
     | AccredStdsCmteX12
 
-let pRspAgyCode = skipString "X" >>. preturn AccredStdsCmteX12 .>> pFSep
+let rsagyCode = field (skipString "X") (constant AccredStdsCmteX12)
 
 //GS-08: Version/Release/Industry Indentifier Code
-type VRIIcode = 
+type VRIIcode =
     | DraftStds
 
-let pVRIIcode = skipString "004010" >>. preturn DraftStds .>> pRSep
+let vRIIcode = field' (skipString "004010") (constant DraftStds)
 
-type GS = 
-    | GS of FuncIdCode * Routing * TxnTimeStamp * GrpCtrlNo * RspAgyCode * VRIIcode
+type GS =
+    | GS of FuncIdCode * Routing * TxnTimeStamp * GrctrlNo * RsagyCode * VRIIcode
 
-let pGS = 
-    skipString "GS" >>. pFSep >>. pFuncIdCode 
-    >>= fun fid -> 
-        pRouting 
-        >>= fun rtg -> 
-            pTxnTimeStamp 
-            >>= fun ts -> 
-                pGrpCtlNo 
-                >>= fun gcn -> 
-                    pRspAgyCode 
-                    >>= fun ragy -> 
-                        pVRIIcode 
-                        >>= fun vrii -> 
+let gS =
+    skipString "GS" >>. fsep >>. funcIdCode
+    >>= fun fid ->
+        routing
+        >>= fun rtg ->
+            txnTimeStamp
+            >>= fun ts ->
+                grctlNo
+                >>= fun gcn ->
+                    rsagyCode
+                    >>= fun ragy ->
+                        vRIIcode
+                        >>= fun vrii ->
                             preturn (GS(fid, rtg, ts, gcn, ragy, vrii))
